@@ -1,4 +1,6 @@
+import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
+import { fetchBotResponse } from "../services/chatApi";
 import ChatToggleButton from "./ChatToggleButton";
 import ChatWindow from "./ChatWindow";
 
@@ -25,14 +27,37 @@ const ChatbotWidget: React.FC = () => {
 		setIsOpen((prev) => !prev);
 	};
 
-	const handleSend = () => {
-		if (!inputValue.trim()) return;
-		const newMessage: Message = {
-			id: Date.now(),
-			content: inputValue,
-			sender: Sender.USER,
-		};
-		setMessages((prev) => [...prev, newMessage]);
+	const handleInputChange = (newVal: string) => {
+		setInputValue(newVal);
+	};
+
+	const mutation = useMutation({
+		mutationFn: fetchBotResponse,
+		onError: (error) => {
+			console.error("Error fetching from server:", error);
+		},
+	});
+
+	const handleSend = async () => {
+		const trimmed = inputValue.trim();
+		if (!trimmed) return;
+
+		setMessages((prev) => [
+			...prev,
+			{ id: Date.now(), sender: Sender.USER, content: trimmed },
+		]);
+
+		try {
+			const data = await mutation.mutateAsync(trimmed);
+
+			setMessages((prev) => [
+				...prev,
+				{ id: Date.now(), sender: Sender.BOT, content: data.response },
+			]);
+		} catch (err) {
+			console.error("handle send failed with the following:", err);
+		}
+
 		setInputValue("");
 	};
 
@@ -46,7 +71,7 @@ const ChatbotWidget: React.FC = () => {
 				<ChatWindow
 					messages={messages}
 					inputValue={inputValue}
-					onInputChange={setInputValue}
+					onInputChange={handleInputChange}
 					onSend={handleSend}
 				/>
 			)}
