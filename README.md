@@ -1,50 +1,70 @@
-# React + TypeScript + Vite
+# AI Chatbot for Shopify (React + Node.js + OpenAI)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This repository contains a sample AI chatbot built using **React**, **Tailwind CSS**, and **OpenAI’s API**. The chatbot is designed for integration into a Shopify store, but it can be adapted for other e-commerce or web platforms.
 
-Currently, two official plugins are available:
+## Table of Contents
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+1. [Overview](#overview)  
+2. [Features](#features)  
+3. [Tech Stack](#tech-stack)  
+4. [Getting Started](#getting-started)  
+5. [Project Structure](#project-structure)  
+6. [Usage](#usage)  
+7. [Customization](#customization)  
+8. [Contributing](#contributing)  
+9. [License](#license)
 
-## Expanding the ESLint configuration
+---
 
-If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
+## Overview
 
-- Configure the top-level `parserOptions` property like this:
+This project demonstrates how to:
 
-```js
-export default tseslint.config({
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
-```
+- Set up a **React** frontend with a chat UI component (`ChatInput`).
+- Use **Node.js** or serverless functions as a backend to connect with the **OpenAI** API.
+- Integrate a chatbot into a Shopify storefront (or any other platform).
 
-- Replace `tseslint.configs.recommended` to `tseslint.configs.recommendedTypeChecked` or `tseslint.configs.strictTypeChecked`
-- Optionally add `...tseslint.configs.stylisticTypeChecked`
-- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and update the config:
+By default, the chatbot can be used to handle common customer queries, guide product recommendations, or provide other niche-specific information.
 
-```js
-// eslint.config.js
-import react from 'eslint-plugin-react'
+---
 
-export default tseslint.config({
-  // Set the react version
-  settings: { react: { version: '18.3' } },
-  plugins: {
-    // Add the react plugin
-    react,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended rules
-    ...react.configs.recommended.rules,
-    ...react.configs['jsx-runtime'].rules,
-  },
-})
-```
+## Features
+
+- **Chat UI**: A minimal, modern chat interface built with React and Tailwind CSS.
+- **OpenAI Integration**: Uses the OpenAI API to generate responses in real time.
+- **Responsive Design**: The UI is mobile-friendly and easily customizable.
+- **Customizable Prompts**: You can tweak prompts or fine-tune your own model for domain-specific language.
+
+---
+
+## Tech Stack
+
+- **Frontend**:  
+  - [React](https://reactjs.org/)  
+  - [TypeScript](https://www.typescriptlang.org/)  
+  - [Tailwind CSS](https://tailwindcss.com/)  
+  - [Heroicons](https://heroicons.com/) (for icons)
+
+- **Backend**:  
+  - [Node.js](https://nodejs.org/) (Express or serverless)  
+  - [OpenAI API](https://platform.openai.com/docs/introduction)
+
+- **Deployment**:  
+  - Any hosting platform that supports Node.js (e.g., Vercel, Heroku, AWS, Netlify, etc.)
+
+---
+
+## Getting Started
+
+### Prerequisites
+
+1. **Node.js** (v14+ recommended)  
+2. **npm** or **yarn**  
+3. **OpenAI API key** (sign up at [OpenAI](https://platform.openai.com/signup) if you don’t have one)
+
+### Installation
+
+1. **Clone the Repository**:
+   ```bash
+   git clone https://github.com/BuildTheWeb1/chatyai.git
+   cd chatyai
