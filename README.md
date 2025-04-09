@@ -68,3 +68,63 @@ By default, the chatbot can be used to handle common customer queries, guide pro
    ```bash
    git clone https://github.com/BuildTheWeb1/chatyai.git
    cd chatyai
+   ```
+
+2. **Install Dependencies**:
+   ```bash
+   npm install
+   ```
+
+3. **Set Up Environment Variables**:
+   - Create a `.env.local` file in the root directory
+   - Add your OpenAI API key:
+   ```
+   # OpenAI API Key for the client-side (Vite)
+   VITE_OPENAI_API_KEY=your_openai_api_key_here
+   
+   # OpenAI API Key for the server-side
+   OPENAI_API_KEY=your_openai_api_key_here
+   ```
+
+4. **Start Development Server**:
+   ```bash
+   # Start the frontend
+   npm run dev
+   
+   # In a separate terminal, start the backend
+   npm run dev:server
+   ```
+
+5. **Open Browser**:
+   - Frontend: http://localhost:5173
+   - Backend: http://localhost:3001
+
+---
+
+## Project Structure
+
+{{ ... }}
+
+---
+
+## Usage
+
+{{ ... }}
+
+---
+
+## Customization
+
+{{ ... }}
+
+---
+
+## Contributing
+
+{{ ... }}
+
+---
+
+## License
+
+{{ ... }}
