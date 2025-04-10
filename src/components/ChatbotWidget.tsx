@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { fetchBotResponse } from "../services/chatApi";
 import ChatToggleButton from "./ChatToggleButton";
 import ChatWindow from "./ChatWindow";
@@ -16,13 +16,27 @@ export interface Message {
 	sender: Sender;
 }
 
+// Local storage key for chat messages
+const STORAGE_KEY = "chatyai_messages";
+
 const ChatbotWidget: React.FC = () => {
 	const [isOpen, setIsOpen] = useState(false);
-	const [messages, setMessages] = useState<Message[]>([
-		{ id: 1, content: "Hello! I'm a simple chatbot.", sender: Sender.BOT },
-		{ id: 2, content: "How can I help you today?", sender: Sender.BOT },
-	]);
+	const [messages, setMessages] = useState<Message[]>(() => {
+		// Initialize from local storage if available
+		const savedMessages = localStorage.getItem(STORAGE_KEY);
+		return savedMessages 
+			? JSON.parse(savedMessages) 
+			: [
+				{ id: 1, content: "Hello! I'm a simple chatbot.", sender: Sender.BOT },
+				{ id: 2, content: "How can I help you today?", sender: Sender.BOT },
+			];
+	});
 	const [inputValue, setInputValue] = useState("");
+
+	// Save messages to local storage whenever they change
+	useEffect(() => {
+		localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
+	}, [messages]);
 
 	const handleToggle = () => {
 		setIsOpen((prev) => !prev);
