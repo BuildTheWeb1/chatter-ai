@@ -21,7 +21,7 @@ const ChatInput: React.FC<ChatInputProps> = ({ value, onChange, onSend }) => {
 	};
 
 	return (
-		<div className="border-t p-3">
+		<div className="border-t border-dotted p-3">
 			<div className="flex space-x-2 bg-white rounded-xl shadow-md px-4 py-4">
 				<GlobeAltIcon className="text-purple-600 w-6 h-6" />
 

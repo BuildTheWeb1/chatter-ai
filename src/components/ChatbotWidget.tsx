@@ -7,6 +7,7 @@ import ChatWindow from "./ChatWindow";
 enum Sender {
 	USER = "user",
 	BOT = "bot",
+	LOADING = "loading", // Add a new sender type for loading state
 }
 
 export interface Message {
@@ -42,23 +43,47 @@ const ChatbotWidget: React.FC = () => {
 		const trimmed = inputValue.trim();
 		if (!trimmed) return;
 
+		// Clear input immediately after sending
+		setInputValue("");
+		
+		// Generate unique IDs for messages
+		const userMsgId = Date.now();
+		const loadingMsgId = userMsgId + 1;
+		
+		// Add user message
 		setMessages((prev) => [
 			...prev,
-			{ id: Date.now(), sender: Sender.USER, content: trimmed },
+			{ id: userMsgId, sender: Sender.USER, content: trimmed },
+		]);
+
+		// Add loading message with a unique ID we can reference later
+		setMessages((prev) => [
+			...prev,
+			{ id: loadingMsgId, sender: Sender.LOADING, content: "typing..." },
 		]);
 
 		try {
 			const data = await mutation.mutateAsync(trimmed);
 
-			setMessages((prev) => [
-				...prev,
-				{ id: Date.now(), sender: Sender.BOT, content: data.response },
-			]);
+			// Replace the loading message with the actual response
+			setMessages((prev) => 
+				prev.map(msg => 
+					msg.id === loadingMsgId 
+						? { ...msg, sender: Sender.BOT, content: data.response }
+						: msg
+				)
+			);
 		} catch (err) {
+			// Replace loading message with an error message
+			setMessages((prev) => 
+				prev.map(msg => 
+					msg.id === loadingMsgId 
+						? { ...msg, sender: Sender.BOT, content: "Sorry, I encountered an error. Please try again." }
+						: msg
+				)
+			);
 			console.error("handle send failed with the following:", err);
 		}
-
-		setInputValue("");
 	};
 
 	return (
