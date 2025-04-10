@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { fetchBotResponse } from "../services/chatApi";
 import ChatToggleButton from "./ChatToggleButton";
 import ChatWindow from "./ChatWindow";
@@ -7,6 +7,7 @@ import ChatWindow from "./ChatWindow";
 enum Sender {
 	USER = "user",
 	BOT = "bot",
+	LOADING = "loading", // Add a new sender type for loading state
 }
 
 export interface Message {
@@ -15,13 +16,27 @@ export interface Message {
 	sender: Sender;
 }
 
+// Local storage key for chat messages
+const STORAGE_KEY = "chatyai_messages";
+
 const ChatbotWidget: React.FC = () => {
 	const [isOpen, setIsOpen] = useState(false);
-	const [messages, setMessages] = useState<Message[]>([
-		{ id: 1, content: "Hello! I'm a simple chatbot.", sender: Sender.BOT },
-		{ id: 2, content: "How can I help you today?", sender: Sender.BOT },
-	]);
+	const [messages, setMessages] = useState<Message[]>(() => {
+		// Initialize from local storage if available
+		const savedMessages = localStorage.getItem(STORAGE_KEY);
+		return savedMessages 
+			? JSON.parse(savedMessages) 
+			: [
+				{ id: 1, content: "Hello! I'm a simple chatbot.", sender: Sender.BOT },
+				{ id: 2, content: "How can I help you today?", sender: Sender.BOT },
+			];
+	});
 	const [inputValue, setInputValue] = useState("");
+
+	// Save messages to local storage whenever they change
+	useEffect(() => {
+		localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
+	}, [messages]);
 
 	const handleToggle = () => {
 		setIsOpen((prev) => !prev);
@@ -42,23 +57,47 @@ const ChatbotWidget: React.FC = () => {
 		const trimmed = inputValue.trim();
 		if (!trimmed) return;
 
+		// Clear input immediately after sending
+		setInputValue("");
+		
+		// Generate unique IDs for messages
+		const userMsgId = Date.now();
+		const loadingMsgId = userMsgId + 1;
+		
+		// Add user message
 		setMessages((prev) => [
 			...prev,
-			{ id: Date.now(), sender: Sender.USER, content: trimmed },
+			{ id: userMsgId, sender: Sender.USER, content: trimmed },
+		]);
+
+		// Add loading message with a unique ID we can reference later
+		setMessages((prev) => [
+			...prev,
+			{ id: loadingMsgId, sender: Sender.LOADING, content: "typing..." },
 		]);
 
 		try {
 			const data = await mutation.mutateAsync(trimmed);
 
-			setMessages((prev) => [
-				...prev,
-				{ id: Date.now(), sender: Sender.BOT, content: data.response },
-			]);
+			// Replace the loading message with the actual response
+			setMessages((prev) => 
+				prev.map(msg => 
+					msg.id === loadingMsgId 
+						? { ...msg, sender: Sender.BOT, content: data.response }
+						: msg
+				)
+			);
 		} catch (err) {
+			// Replace loading message with an error message
+			setMessages((prev) => 
+				prev.map(msg => 
+					msg.id === loadingMsgId 
+						? { ...msg, sender: Sender.BOT, content: "Sorry, I encountered an error. Please try again." }
+						: msg
+				)
+			);
 			console.error("handle send failed with the following:", err);
 		}
-
-		setInputValue("");
 	};
 
 	return (
