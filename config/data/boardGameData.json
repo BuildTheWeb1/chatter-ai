@@ -1,0 +1,12 @@
+{
+	"gameName": "Monopoly",
+	"companyName": "Maneas",
+	"rules": "Each player starts with $1500 in Monopoly money. Place the board in the center, distribute 2 $500 bills, 4 $100 bills, 1 $50 bill, 1 $20 bill, 2 $10 bills, 1 $5 bill, and 5 $1 bills to each player. Position the Chance and Community Chest cards face down on the board. Players take turns rolling two dice to move their token around the board, buying properties, paying rent, or drawing cards as they land on spaces.",
+	"objective": "The objective of Monopoly is to bankrupt all other players by buying properties, building houses and hotels, and collecting rent. The last player with money wins.",
+	"faqs": {
+		"lost_piece": "Lost a piece? Contact support@maneas.com for replacements.",
+		"how_many_players": "Monopoly by Maneas supports 2-8 players.",
+		"game_length": "A typical game lasts 1-3 hours, depending on player strategy and luck.",
+		"bankrupt_rule": "If you owe more than you can pay, you’re bankrupt and out of the game. Turn over your properties to the creditor."
+	}
+}
