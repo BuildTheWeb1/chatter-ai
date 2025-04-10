@@ -17,7 +17,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
 	onSend,
 }) => {
 	return (
-		<div className="bg-white rounded-xl shadow-xl mt-3 w-96 max-w-full max-h-[600px] flex flex-col overflow-hidden animate-fadeInScale">
+		<div className="bg-white rounded-xl shadow-xl mt-3 w-[90vw] sm:w-80 md:w-96 max-w-full max-h-[600px] flex flex-col overflow-hidden animate-fadeInScale">
 			<ChatHeader />
 			<ChatMessages messages={messages} />
 			<ChatInput value={inputValue} onChange={onInputChange} onSend={onSend} />

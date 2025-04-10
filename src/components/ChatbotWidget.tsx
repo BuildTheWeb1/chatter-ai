@@ -19,7 +19,11 @@ export interface Message {
 // Local storage key for chat messages
 const STORAGE_KEY = "chatyai_messages";
 
-const ChatbotWidget: React.FC = () => {
+interface ChatbotWidgetProps {
+	onOpenChange?: (isOpen: boolean) => void;
+}
+
+const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({ onOpenChange }) => {
 	const [isOpen, setIsOpen] = useState(false);
 	const [messages, setMessages] = useState<Message[]>(() => {
 		// Initialize from local storage if available
@@ -37,6 +41,11 @@ const ChatbotWidget: React.FC = () => {
 	useEffect(() => {
 		localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
 	}, [messages]);
+
+	// Notify parent component when isOpen changes
+	useEffect(() => {
+		onOpenChange?.(isOpen);
+	}, [isOpen, onOpenChange]);
 
 	const handleToggle = () => {
 		setIsOpen((prev) => !prev);
