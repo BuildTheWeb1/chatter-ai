@@ -66,8 +66,8 @@ By default, the chatbot can be used to handle common customer queries, guide pro
 
 1. **Clone the Repository**:
    ```bash
-   git clone https://github.com/BuildTheWeb1/chatyai.git
-   cd chatyai
+   git clone https://github.com/BuildTheWeb1/chatter-ai.git
+   cd chatter-ai
    ```
 
 2. **Install Dependencies**:

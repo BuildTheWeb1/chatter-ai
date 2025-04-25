@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { fetchBotResponse } from "../services/chatApi";
 import ChatToggleButton from "./ChatToggleButton";
 import ChatWindow from "./ChatWindow";
@@ -17,7 +17,7 @@ export interface Message {
 }
 
 // Local storage key for chat messages
-const STORAGE_KEY = "chatyai_messages";
+const STORAGE_KEY = "chatter-ai_messages";
 
 interface ChatbotWidgetProps {
 	onOpenChange?: (isOpen: boolean) => void;
@@ -28,12 +28,16 @@ const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({ onOpenChange }) => {
 	const [messages, setMessages] = useState<Message[]>(() => {
 		// Initialize from local storage if available
 		const savedMessages = localStorage.getItem(STORAGE_KEY);
-		return savedMessages 
-			? JSON.parse(savedMessages) 
+		return savedMessages
+			? JSON.parse(savedMessages)
 			: [
-				{ id: 1, content: "Hello! I'm a simple chatbot.", sender: Sender.BOT },
-				{ id: 2, content: "How can I help you today?", sender: Sender.BOT },
-			];
+					{
+						id: 1,
+						content: "Hello! I'm a simple chatbot.",
+						sender: Sender.BOT,
+					},
+					{ id: 2, content: "How can I help you today?", sender: Sender.BOT },
+				];
 	});
 	const [inputValue, setInputValue] = useState("");
 
@@ -68,11 +72,11 @@ const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({ onOpenChange }) => {
 
 		// Clear input immediately after sending
 		setInputValue("");
-		
+
 		// Generate unique IDs for messages
 		const userMsgId = Date.now();
 		const loadingMsgId = userMsgId + 1;
-		
+
 		// Add user message
 		setMessages((prev) => [
 			...prev,
@@ -89,21 +93,25 @@ const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({ onOpenChange }) => {
 			const data = await mutation.mutateAsync(trimmed);
 
 			// Replace the loading message with the actual response
-			setMessages((prev) => 
-				prev.map(msg => 
-					msg.id === loadingMsgId 
+			setMessages((prev) =>
+				prev.map((msg) =>
+					msg.id === loadingMsgId
 						? { ...msg, sender: Sender.BOT, content: data.response }
-						: msg
-				)
+						: msg,
+				),
 			);
 		} catch (err) {
 			// Replace loading message with an error message
-			setMessages((prev) => 
-				prev.map(msg => 
-					msg.id === loadingMsgId 
-						? { ...msg, sender: Sender.BOT, content: "Sorry, I encountered an error. Please try again." }
-						: msg
-				)
+			setMessages((prev) =>
+				prev.map((msg) =>
+					msg.id === loadingMsgId
+						? {
+								...msg,
+								sender: Sender.BOT,
+								content: "Sorry, I encountered an error. Please try again.",
+							}
+						: msg,
+				),
 			);
 			console.error("handle send failed with the following:", err);
 		}
