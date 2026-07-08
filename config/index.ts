@@ -1,46 +1,54 @@
-import fs from 'node:fs';
-import path from 'node:path';
-import { BoardGameData, EcommerceData, SupportData } from './types';
-import { generateBoardGamePrompt } from './prompts/boardGamePrompt';
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import type { AssistantConfig } from "./types.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const DEFAULT_CONFIG_PATH = path.join(__dirname, "data", "assistant.config.json");
 
 /**
- * Loads data from a JSON file
- * @param filename The name of the JSON file in the data directory
- * @returns The parsed data
+ * Loads and parses an AssistantConfig JSON file.
+ * @param filePath Absolute or relative path to the JSON config file.
  */
-function loadData(filename: string) {
-  const dataPath = path.join(__dirname, 'data', filename);
-  return JSON.parse(fs.readFileSync(dataPath, 'utf8'));
+function loadAssistantConfig(filePath: string): AssistantConfig {
+	const resolvedPath = path.isAbsolute(filePath)
+		? filePath
+		: path.join(process.cwd(), filePath);
+	const raw = fs.readFileSync(resolvedPath, "utf8");
+	return JSON.parse(raw) as AssistantConfig;
 }
 
 /**
- * Generates a system prompt based on the data type
- * @param data The data to use for generating the prompt
- * @returns A formatted system prompt
+ * Builds the assistant's system prompt for this deployment.
+ *
+ * Resolution order:
+ * 1. `SYSTEM_PROMPT` env var, if set — used verbatim, no file involved.
+ * 2. `SYSTEM_PROMPT_CONFIG_FILE` env var, if set — path to a JSON file
+ *    matching the `AssistantConfig` shape.
+ * 3. The default shipped `config/data/assistant.config.json`.
+ *
+ * For the JSON-file paths, the final prompt is the config's `systemPrompt`
+ * plus an appended FAQ block built from `config.faqs`, if present.
  */
-function generateSystemPrompt(data: BoardGameData | EcommerceData | SupportData): string {
-  // Type guard for BoardGameData
-  if ('gameName' in data && 'objective' in data) {
-    return generateBoardGamePrompt(data as BoardGameData);
-  }
-  
-  // Type guard for EcommerceData
-  if ('storeName' in data && 'returnPolicy' in data) {
-    // You can add a specific prompt generator for e-commerce here
-    // For now, return a simple placeholder
-    const ecommerceData = data as EcommerceData;
-    return `You are a customer support assistant for ${ecommerceData.storeName}.`;
-  }
-  
-  // Default case
-  return 'You are a helpful assistant.';
+export function getSystemPrompt(): string {
+	if (process.env.SYSTEM_PROMPT) {
+		return process.env.SYSTEM_PROMPT;
+	}
+
+	const configPath = process.env.SYSTEM_PROMPT_CONFIG_FILE || DEFAULT_CONFIG_PATH;
+	const config = loadAssistantConfig(configPath);
+
+	if (!config.faqs || Object.keys(config.faqs).length === 0) {
+		return config.systemPrompt;
+	}
+
+	const faqLines = Object.entries(config.faqs)
+		.map(([question, answer]) => `- ${question}: ${answer}`)
+		.join("\n");
+
+	return `${config.systemPrompt}\n\nCommon FAQs:\n${faqLines}`;
 }
 
-// Export functions
-export { loadData, generateSystemPrompt };
-
-// Re-export types
-export { BoardGameData, EcommerceData, SupportData };
-
-// Re-export prompt generators
-export { generateBoardGamePrompt };
+export type { AssistantConfig };

@@ -58,9 +58,9 @@ By default, the chatbot can be used to handle common customer queries, guide pro
 
 ### Prerequisites
 
-1. **Node.js** (v14+ recommended)  
+1. **Node.js** (v20+ recommended)  
 2. **npm** or **yarn**  
-3. **OpenAI API key** (sign up at [OpenAI](https://platform.openai.com/signup) if you don’t have one)
+3. **Anthropic API key** (create one at [console.anthropic.com](https://console.anthropic.com/) if you don't have one)
 
 ### Installation
 
@@ -76,14 +76,11 @@ By default, the chatbot can be used to handle common customer queries, guide pro
    ```
 
 3. **Set Up Environment Variables**:
-   - Create a `.env.local` file in the root directory
-   - Add your OpenAI API key:
+   - Create a `.env.local` file in the root directory (it's gitignored and overrides `.env`)
+   - Add your Anthropic API key:
    ```
-   # OpenAI API Key for the client-side (Vite)
-   VITE_OPENAI_API_KEY=your_openai_api_key_here
-   
-   # OpenAI API Key for the server-side
-   OPENAI_API_KEY=your_openai_api_key_here
+   # Anthropic API key for the server-side Claude Agent SDK (never sent to the browser)
+   ANTHROPIC_API_KEY=your_anthropic_api_key_here
    ```
 
 4. **Start Development Server**:
@@ -98,6 +95,59 @@ By default, the chatbot can be used to handle common customer queries, guide pro
 5. **Open Browser**:
    - Frontend: http://localhost:5173
    - Backend: http://localhost:3001
+
+---
+
+## Configuring for your own site
+
+This app is meant to be run as your own, self-hosted copy: each site/project that
+wants the chatbot widget deploys its own copy of both the client and the server
+(one process, one deployment, one API key) and embeds/frames the built client
+from that site — there's no shared multi-tenant backend and no separate
+script-tag/iframe distribution bundle in this pass.
+
+Configuration is entirely via server-side environment variables — no
+application code needs to change:
+
+- **`ANTHROPIC_API_KEY`** (required) — your Anthropic API key. Server-side
+  only; the Claude Agent SDK reads it directly from `process.env` and it is
+  never exposed to the browser.
+- **`SYSTEM_PROMPT`** (optional) — set this to override the assistant's
+  entire system prompt with a raw string. This is the fastest way to point
+  the chatbot at your own persona without touching any files. Takes
+  precedence over `SYSTEM_PROMPT_CONFIG_FILE`.
+- **`SYSTEM_PROMPT_CONFIG_FILE`** (optional) — path to a JSON file describing
+  your assistant, if you'd rather manage the persona and some FAQ context as
+  data instead of one long env var string. Defaults to the shipped
+  `config/data/assistant.config.json` (a Monopoly board-game support example).
+  The file must match this shape:
+
+  ```jsonc
+  {
+    "systemPrompt": "You are a customer support assistant for ... Describe the assistant's persona, scope, and any key facts it needs here.",
+    "faqs": {
+      "some_question_key": "The answer to show the assistant for this kind of question.",
+      "another_question_key": "Another answer."
+    }
+  }
+  ```
+
+  `faqs` is optional; when present, its entries are appended to `systemPrompt`
+  as a "Common FAQs" block.
+
+No retrieval/RAG pipeline is built in this pass — `SYSTEM_PROMPT`/
+`SYSTEM_PROMPT_CONFIG_FILE` is the whole configuration surface for now.
+
+### Known limitation: `chatId` is an unauthenticated bearer credential
+
+There is no auth layer in front of a chat's history. The client generates a
+`chatId` and persists it to `localStorage`; the server will return history
+for, and accept new messages into, *any* `chatId` a WebSocket client sends it
+via `subscribe`/`chat` — anyone who obtains a given `chatId` string can read
+and write that conversation. Treat `chatId` as a bearer secret, the same way
+you'd treat a session cookie. This app intentionally ships as a single-tenant,
+self-hosted, no-auth-system design; if you need per-user authentication, add
+your own auth layer in front of this app rather than expecting one here.
 
 ---
 

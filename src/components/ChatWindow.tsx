@@ -1,13 +1,14 @@
 import ChatHeader from "./ChatHeader";
 import ChatInput from "./ChatInput";
 import ChatMessages from "./ChatMessages";
-import type { Message } from "./ChatbotWidget";
+import type { Message } from "../types/chat";
 
 interface ChatWindowProps {
 	messages: Message[];
 	inputValue: string;
 	onInputChange: (val: string) => void;
 	onSend: () => void;
+	isConnected?: boolean;
 }
 
 const ChatWindow: React.FC<ChatWindowProps> = ({
@@ -15,12 +16,18 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
 	inputValue,
 	onInputChange,
 	onSend,
+	isConnected = true,
 }) => {
 	return (
 		<div className="bg-white rounded-xl shadow-xl mt-3 w-[90vw] sm:w-80 md:w-96 max-w-full max-h-[600px] flex flex-col overflow-hidden animate-fadeInScale">
 			<ChatHeader />
 			<ChatMessages messages={messages} />
-			<ChatInput value={inputValue} onChange={onInputChange} onSend={onSend} />
+			<ChatInput
+				value={inputValue}
+				onChange={onInputChange}
+				onSend={onSend}
+				disabled={!isConnected}
+			/>
 		</div>
 	);
 };

@@ -5,9 +5,15 @@ interface ChatInputProps {
 	value: string;
 	onChange: (val: string) => void;
 	onSend: () => void;
+	disabled?: boolean;
 }
 
-const ChatInput: React.FC<ChatInputProps> = ({ value, onChange, onSend }) => {
+const ChatInput: React.FC<ChatInputProps> = ({
+	value,
+	onChange,
+	onSend,
+	disabled = false,
+}) => {
 	const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
 		// Press Enter to send (unless shift is held for multiline)
 		if (e.key === "Enter" && !e.shiftKey) {
@@ -26,17 +32,19 @@ const ChatInput: React.FC<ChatInputProps> = ({ value, onChange, onSend }) => {
 				<GlobeAltIcon className="text-purple-600 w-6 h-6" />
 
 				<textarea
-					className="flex-1 bg-transparent focus:outline-none placeholder-gray-500 resize-none h-16 overflow-y-auto leading-tight"
-					placeholder="How can I help?"
+					className={`flex-1 bg-transparent focus:outline-none placeholder-gray-500 resize-none h-16 overflow-y-auto leading-tight ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
+					placeholder={disabled ? "Connecting..." : "How can I help?"}
 					value={value}
 					onChange={handleChange}
 					onKeyDown={handleKeyDown}
+					disabled={disabled}
 				/>
 
 				{/* biome-ignore lint/a11y/useButtonType: <explanation> */}
 				<button
 					onClick={onSend}
-					className="bg-black rounded-full p-2 text-white hover:bg-gray-800 transition-colors self-end"
+					disabled={disabled}
+					className={`bg-black rounded-full p-2 text-white hover:bg-gray-800 transition-colors self-end ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
 				>
 					<ChevronRightIcon className="w-6 h-6" />
 				</button>

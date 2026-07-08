@@ -1,6 +1,6 @@
 import { SparklesIcon } from "@heroicons/react/24/outline";
 import { CheckBadgeIcon } from "@heroicons/react/24/solid";
-import type { Message } from "./ChatbotWidget";
+import type { Message } from "../types/chat";
 
 interface ChatBubbleProps {
 	message: Message;

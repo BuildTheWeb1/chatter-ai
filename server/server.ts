@@ -1,121 +1,146 @@
-import { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+// Must be the first import - loads .env/.env.local and fails fast if
+// ANTHROPIC_API_KEY is missing, before any other module (e.g. ai-client.ts)
+// gets a chance to read process.env. See server/env.ts for why the ordering
+// matters under ESM.
+import "./env.js";
+
+import { createServer } from "node:http";
 import cors from "cors";
-import dotenv from "dotenv";
 import express from "express";
 import type { Request, Response } from "express";
-import { generateSystemPrompt, loadData } from "../config";
-
-// Load environment variables from .env file
-dotenv.config();
-
-// Check if .env.local exists and load it (it overrides .env)
-const envLocalPath = join(__dirname, "../.env.local");
-if (existsSync(envLocalPath)) {
-	// Use dotenv.parse to parse the file content
-	const envLocalContent = readFileSync(envLocalPath, "utf8");
-	const envLocalConfig = dotenv.parse(envLocalContent);
-
-	// Add parsed variables to process.env
-	for (const key in envLocalConfig) {
-		if (Object.prototype.hasOwnProperty.call(envLocalConfig, key)) {
-			process.env[key] = envLocalConfig[key];
-		}
-	}
-}
-
-// Generate system prompt from the data
-// This approach allows you to easily switch between different prompt types
-// by changing the dataType and dataFilename parameters
-const boardGameData = loadData("boardGameData.json");
-const systemPrompt = generateSystemPrompt(boardGameData);
+import { WebSocketServer } from "ws";
+import type { IncomingWSMessage, WSClient } from "./types.js";
+import { chatStore } from "./chat-store.js";
+import { Session } from "./session.js";
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Enable CORS for your React app
 app.use(cors());
-// Parse JSON bodies
 app.use(express.json());
 
-// OpenAI API types
-interface OpenAIMessage {
-	role: "system" | "user" | "assistant";
-	content: string;
+app.get("/api/health", (_req: Request, res: Response) => {
+	res.json({ status: "ok" });
+});
+
+// Create HTTP server
+const server = createServer(app);
+
+// WebSocket server
+const wss = new WebSocketServer({ server, path: "/ws" });
+
+// Session management — one Session (and its own long-lived AgentSession) per chatId
+const sessions: Map<string, Session> = new Map();
+
+function getOrCreateSession(chatId: string): Session {
+	let session = sessions.get(chatId);
+	if (!session) {
+		session = new Session(chatId);
+		sessions.set(chatId, session);
+	}
+	return session;
 }
 
-interface OpenAIErrorResponse {
-	error?: {
-		message?: string;
-	};
-}
+wss.on("connection", (ws: WSClient) => {
+	console.log("WebSocket client connected");
+	ws.isAlive = true;
 
-interface OpenAISuccessResponse {
-	choices: {
-		message: OpenAIMessage;
-		finish_reason: string;
-		index: number;
-	}[];
-}
+	ws.send(JSON.stringify({ type: "connected", message: "Connected to chat server" }));
 
-// Define route handlers
-const handleChatRequest = async (
-	req: Request,
-	res: Response,
-): Promise<void> => {
-	try {
-		const { message } = req.body;
+	ws.on("pong", () => {
+		ws.isAlive = true;
+	});
 
-		// Get API key from environment variables (server-side only)
-		const apiKey = process.env.OPENAI_API_KEY;
-
-		if (!apiKey) {
-			res.status(500).json({
-				error:
-					"OpenAI API key is missing. Please set the OPENAI_API_KEY environment variable.",
-			});
+	ws.on("message", (data) => {
+		let message: IncomingWSMessage;
+		try {
+			message = JSON.parse(data.toString());
+		} catch (error) {
+			console.error("Error parsing WebSocket message:", error);
+			ws.send(JSON.stringify({ type: "error", error: "Invalid message format" }));
 			return;
 		}
 
-		const response = await fetch("https://api.openai.com/v1/chat/completions", {
-			method: "POST",
-			headers: {
-				"Content-Type": "application/json",
-				Authorization: `Bearer ${apiKey}`,
-			},
-			body: JSON.stringify({
-				model: "gpt-3.5-turbo",
-				messages: [
-					{ role: "system", content: systemPrompt },
-					{ role: "user", content: message },
-				],
-				temperature: 0.7,
-				max_tokens: 150,
-			}),
-		});
+		try {
+			switch (message.type) {
+				case "subscribe": {
+					const session = getOrCreateSession(message.chatId);
+					session.subscribe(ws);
+					console.log(`Client subscribed to chat ${message.chatId}`);
 
-		if (!response.ok) {
-			const errorData = (await response.json()) as OpenAIErrorResponse;
-			throw new Error(
-				`OpenAI API error: ${errorData.error?.message || response.statusText}`,
+					// Send existing messages
+					const messages = chatStore.getMessages(message.chatId);
+					ws.send(
+						JSON.stringify({
+							type: "history",
+							messages,
+							chatId: message.chatId,
+						}),
+					);
+					break;
+				}
+
+				case "chat": {
+					const session = getOrCreateSession(message.chatId);
+					session.subscribe(ws);
+					session.sendMessage(message.content, message.clientMessageId);
+					break;
+				}
+
+				default:
+					console.warn("Unknown message type:", (message as { type: unknown }).type);
+			}
+		} catch (error) {
+			console.error("Error handling WebSocket message:", error);
+			ws.send(
+				JSON.stringify({ type: "error", error: "Failed to process message" }),
 			);
 		}
+	});
 
-		const data = (await response.json()) as OpenAISuccessResponse;
-		res.json({
-			response: data.choices[0]?.message?.content || "No response generated",
-		});
-	} catch (error) {
-		console.error("Error calling OpenAI API:", error);
-		res.status(500).json({
-			error: "Failed to get response from AI service",
-		});
+	ws.on("close", () => {
+		console.log("WebSocket client disconnected");
+
+		// Look up this client's session directly via the chatId stamped on it
+		// by Session.subscribe(), instead of sweeping every live session.
+		const chatId = ws.chatId;
+		if (!chatId) return;
+
+		const session = sessions.get(chatId);
+		if (!session) return;
+
+		session.unsubscribe(ws);
+
+		// No tabs left watching this chat - tear down its (possibly
+		// never-created) AgentSession/subprocess and drop the Session itself,
+		// instead of leaking one Session (and one child process, once a chat
+		// has been used) per chatId for the lifetime of the server.
+		if (!session.hasSubscribers()) {
+			session.close();
+			sessions.delete(chatId);
+		}
+	});
+});
+
+// Heartbeat to detect dead connections
+const heartbeat = setInterval(() => {
+	for (const ws of wss.clients) {
+		const client = ws as WSClient;
+		if (client.isAlive === false) {
+			client.terminate();
+			continue;
+		}
+		client.isAlive = false;
+		client.ping();
 	}
-};
+}, 30000);
 
-// OpenAI API proxy endpoint
-app.post("/api/chat", handleChatRequest);
+wss.on("close", () => {
+	clearInterval(heartbeat);
+});
 
-app.listen(PORT, () => {
+// Start server
+server.listen(PORT, () => {
 	console.log(`Server is running on http://localhost:${PORT}`);
+	console.log(`WebSocket endpoint available at ws://localhost:${PORT}/ws`);
 });
